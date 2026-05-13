@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmasters Trip</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;color:#333;background:#f5f5f5}
+header{background:#1a3a5c;color:#fff;padding:16px 24px}
+header h1{font-size:1.6em}
+header p{font-size:.85em;opacity:.85;margin-top:4px}
+nav{background:#1e4976;padding:8px 24px;display:flex;gap:16px;flex-wrap:wrap}
+.sticky-top{position:sticky;top:0;z-index:1000}
+nav a{color:#aed6f1;text-decoration:none;font-size:.85em;font-weight:600}
+nav a:hover{color:#fff}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+#map{height:500px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);margin:16px 0}
+.overzicht{background:#fff;border-radius:8px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.1);margin:12px 0}
+.overzicht h2{color:#1a3a5c;border-bottom:2px solid #2980b9;padding-bottom:8px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:.88em}
+table th{background:#1a3a5c;color:#fff;padding:8px;text-align:left}
+table td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:top}
+table tr:nth-child(even){background:#f8f9fa}
+table tr:hover{background:#eaf4fb}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75em;font-weight:700;color:#fff}
+.bg-nl{background:#FF6B00}.bg-de{background:#333}.bg-cz{background:#c0392b}
+.bg-at{background:#e74c3c}.bg-sl{background:#27ae60}.bg-hr{background:#2980b9}
+.bg-it{background:#008C45}.bg-ch{background:#D52B1E}
+.et-section{background:#fff;border-radius:8px;margin:12px 0;box-shadow:0 1px 4px rgba(0,0,0,.1);overflow:hidden}
+.et-header{padding:14px 20px;color:#fff;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.et-header h3{font-size:1em}
+.et-header .badge2{background:rgba(255,255,255,.25);padding:3px 10px;border-radius:12px;font-size:.78em}
+.et-body{padding:0 20px 16px;display:none}
+.et-body.open{display:block}
+.et-body h4{color:#1a3a5c;margin:12px 0 4px;font-size:.9em}
+.route-box{background:#f0f7ff;border-left:4px solid #2980b9;padding:8px 12px;font-size:.85em;border-radius:0 4px 4px 0;margin:4px 0}
+.camp-box{background:#f0fff4;border:1px solid #27ae60;border-radius:6px;padding:10px 14px;margin:8px 0}
+.camp-box .cn{font-weight:700;color:#1a6b3a;font-size:.95em}
+.camp-box .ca{font-size:.82em;color:#555;margin:3px 0}
+.camp-box .cp{font-size:.82em}
+.sight-list{padding-left:16px;font-size:.85em}
+.sight-list li{margin:3px 0}
+.sight-list li strong{color:#2c3e50}
+.drone-box{background:#fffbf0;border-left:4px solid #f39c12;padding:8px 12px;font-size:.84em;border-radius:0 4px 4px 0}
+.warn{background:#fff3cd;border-left:4px solid #ffc107;padding:8px 12px;font-size:.84em;border-radius:0 4px 4px 0;margin:4px 0}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
+@media(max-width:600px){.info-grid{grid-template-columns:1fr}}
+.info-item{background:#f8f9fa;border-radius:4px;padding:6px 10px;font-size:.83em}
+.info-item strong{display:block;color:#1a3a5c;font-size:.78em;text-transform:uppercase;margin-bottom:2px}
+.vignette-table{width:100%;font-size:.85em;border-collapse:collapse}
+.vignette-table th{background:#2c3e50;color:#fff;padding:7px 10px;text-align:left}
+.vignette-table td{padding:6px 10px;border-bottom:1px solid #ddd}
+.vignette-table tr:nth-child(even){background:#f5f5f5}
+.toc{column-count:2;column-gap:20px}
+table a{color:#2980b9;text-decoration:none}
+table a:hover{text-decoration:underline}
+.toc a{display:block;color:#2980b9;font-size:.88em;margin:2px 0;text-decoration:none}
+.toc a:hover{text-decoration:underline}
+@media(max-width:500px){.toc{column-count:1}}
+.acties-rij{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+@media(max-width:600px){.acties-rij{grid-template-columns:1fr}}
+.actie-ok{background:#e8f8f0;border-left:4px solid #27ae60;padding:8px 12px;border-radius:0 4px 4px 0;font-size:.85em}
+.actie-warn{background:#fff8e1;border-left:4px solid #f39c12;padding:8px 12px;border-radius:0 4px 4px 0;font-size:.85em}
+.actie-nee{background:#fde8e8;border-left:4px solid #e74c3c;padding:8px 12px;border-radius:0 4px 4px 0;font-size:.85em}
+</style>
+</head>
+<body>
+<div class="sticky-top">
+<header>
+  <h1>Roadmasters 2026</h1>
+  <p>Roller Team Ducato (h=2,85m) &nbsp;|&nbsp; B-wegen, max 5% helling &nbsp;|&nbsp; Heen: 1.688 km (EH1–EH8) via Cheb &amp; Český Krumlov &nbsp;|&nbsp; Retour: ~1.710 km (ER1–ER8) via Senj, Adriatische Kust &amp; Basel</p>
+</header>
+<nav>
+  <a href="#kaart">&#128506; Kaart</a>
+  <a href="#overzicht">&#128205; Overzicht</a>
+  <span style="color:#5d8db8;font-size:.75em;opacity:.7;margin:0 4px">— HEEN —</span>
+  <a href="#e1">EH1</a>
+  <a href="#e2">EH2</a>
+  <a href="#e3">EH3</a>
+  <a href="#e4">EH4</a>
+  <a href="#e5">EH5</a>
+  <a href="#e6">EH6</a>
+  <a href="#e7">EH7</a>
+  <a href="#e8">EH8</a>
+  <span style="color:#5d8db8;font-size:.75em;opacity:.7;margin:0 4px">— RETOUR (kust) —</span>
+  <a href="#er1">ER1</a>
+  <a href="#er2">ER2</a>
+  <a href="#er3">ER3</a>
+  <a href="#er4">ER4</a>
+  <a href="#er5">ER5</a>
+  <a href="#er6">ER6</a>
+  <a href="#er7">ER7</a>
+  <a href="#er8">ER8</a>
+  <a href="#praktisch">&#128295; Praktisch</a>
+</nav>
+</div>
+<div class="container">
+<div class="overzicht" id="kaart">
+<h2>&#128506; Routekaart</h2>
+<div id="map"></div>
+</div>
+<div class="overzicht" id="overzicht">
+<h2>&#128205; Overzicht alle etappes</h2>
+<table>
+<tr><th>Et.</th><th>Van</th><th>Naar</th><th>Km</th><th>Rijtijd</th><th>Dag</th><th>Land</th></tr>
+<tr><td><strong>EH1</strong></td><td>Apeldoorn (NL)</td><td>Möhnesee (DE) – Camp13</td><td><strong>247 km</strong></td><td>4u07</td><td>normale rijdag</td><td><span class="badge bg-nl">NL</span> <span class="badge bg-de">DE</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+1 rustdag Möhnesee</strong> – Stuwmeer in het Sauerland: wandelen, fietsen, bossen. Rustig beginnen aan de reis.</td><td colspan="2"></td></tr>
+<tr><td><strong>EH2</strong></td><td>Möhnesee (DE)</td><td>Alsfeld (DE) – Stellplatz Erlenstadion</td><td><strong>147 km</strong></td><td>2u26</td><td>korte rijdag – extra tijd voor Alsfeld</td><td><span class="badge bg-de">DE</span></td></tr>
+<tr><td><strong>EH3</strong></td><td>Alsfeld (DE)</td><td>Coburg (DE) – Stellplatz Vesteblick</td><td><strong>207 km</strong></td><td>3u27</td><td>normale rijdag</td><td><span class="badge bg-de">DE</span></td></tr>
+<tr><td><strong>EH4</strong></td><td>Coburg (DE)</td><td>Cheb (CZ) – Kemp Václav *** VERPLICHTE STOP ***</td><td><strong>117 km</strong></td><td>1u56</td><td>korte rijdag – heel dag voor Cheb sightseeing</td><td><span class="badge bg-de">DE</span> <span class="badge bg-cz">CZ</span></td></tr>
+<tr><td><strong>EH5</strong></td><td>Cheb (CZ)</td><td>Český Krumlov (CZ) – Camping Chvalsiny *** VERPLICHTE STOP ***</td><td><strong>256 km</strong></td><td>4u15</td><td>normale rijdag</td><td><span class="badge bg-cz">CZ</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+1 rustdag Šumava / Český Krumlov</strong> – NP Šumava: oerbossen, veenmeren, wandelen. UNESCO-stad verkennen.</td><td colspan="2"></td></tr>
+<tr><td><strong>EH6</strong></td><td>Český Krumlov (CZ)</td><td>Bruck an der Mur (AT) – Gasthof Pichler</td><td><strong>273 km</strong></td><td>4u33</td><td>langste rijdag – vertrek om 10:00</td><td><span class="badge bg-cz">CZ</span> <span class="badge bg-at">AT</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+1 rustdag Gesäuse</strong> – NP Gesäuse: wildwaterkloof Enns-rivier, bergwandelen, spectaculaire natuur.</td><td colspan="2"></td></tr>
+<tr><td><strong>EH7</strong></td><td>Bruck an der Mur (AT)</td><td>Maribor (SL) – Camping Center Kekec</td><td><strong>144 km</strong></td><td>2u23</td><td>korte rijdag – extra tijd voor Maribor</td><td><span class="badge bg-at">AT</span> <span class="badge bg-sl">SL</span></td></tr>
+<tr><td><strong>EH8</strong></td><td>Maribor (SL)</td><td>Plitvice (HR) – Nationaal Park</td><td><strong>297 km</strong></td><td>4u56</td><td>langste rijdag – vertrek om 09:30</td><td><span class="badge bg-sl">SL</span> <span class="badge bg-hr">HR</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+3 rustdagen Plitvice</strong> – UNESCO: 16 meren, 92 watervallen, boardwalks. Min. 2 volle wandeldagen + 1 rustdag.</td><td colspan="2"></td></tr>
+<tr style="background:#e8f4fd"><td colspan="3"><strong>Totaal heen</strong></td>
+<td><strong>1.688 km</strong></td><td><strong>~28u rijden</strong></td><td colspan="2">8 rijdagen + 6 rustdagen = 14 nachten</td></tr>
+</table>
+</div>
+<div class="et-section" id="e1">
+<div class="et-header" style="background:#c0392b" onclick="tog('b1')">
+<h3>EH1: Apeldoorn (NL) &rarr; Möhnesee (DE) – Camp13</h3>
+<span class="badge2">247 km &bull; 4u07</span>
+</div>
+<div class="et-body" id="b1">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>247 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>4u07</div>
+<div class="info-item"><strong>Karakter</strong>normale rijdag</div>
+<div class="info-item"><strong>Landen</strong>NL → DE</div>
+<div class="info-item"><strong>Max helling continu</strong>3% – B229 Sauerland</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">N344 → Arnhem → N338/B67 Dinxperlo → Borken → Dülmen → Haltern am See → Werl → B229 → Möhnesee</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Supermarkt Apeldoorn (Jumbo Kanaalzone) | Lidl bij Werl</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Arnhem</strong> – Airborne Museum en bruggen over de Rijn</li>
+<li><strong>Sauerland</strong> – Heuvellandschap langs de B229</li>
+<li><strong>Möhnesee</strong> – Stuwmeer met dam (WOII-bombardement verhaal), wandelroutes</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – NL en DE hebben geen vignetplicht voor campers.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Möhnesee: vlieg boven het water, &gt;150m van dam. <a href="https://www.droniq.de" target="_blank">droniq.de</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camp13 - Reisemobilhafen am Möhnesee</div>
+<div class="ca">&#128205; Südufer 13, 59519 Möhnesee, Deutschland</div>
+<div class="ca">&#128222; +49 171 5106452 &nbsp;|&nbsp; EUR 19-40/nacht</div>
+<div class="cp">Stroom (45 plaatsen), water, afvalwater, sanitair, WiFi. Direct aan het meer.</div>
+</div>
+<h4>&#127793; Rustdag – Möhnesee (1 dag)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">Rustdag: Sauerland natuur</div>
+<div class="cp">Wandeling rondom het stuwmeer (Möhne-Talsperre, 10 km rondje). Fietsen door de Arnsberger Wald. Vogelspotting bij de Hevesee (zijarm). Dam bezoeken met WOII-geschiedenis. Rustig beginnen aan de vakantie!</div>
+</div>
+</div></div>
+<div class="et-section" id="e2">
+<div class="et-header" style="background:#e67e22" onclick="tog('b2')">
+<h3>EH2: Möhnesee (DE) &rarr; Alsfeld (DE) – Stellplatz Erlenstadion</h3>
+<span class="badge2">147 km &bull; 2u26</span>
+</div>
+<div class="et-body" id="b2">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>147 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>2u26</div>
+<div class="info-item"><strong>Karakter</strong>korte rijdag – extra tijd voor Alsfeld</div>
+<div class="info-item"><strong>Landen</strong>DE</div>
+<div class="info-item"><strong>Max helling continu</strong>3% – B254 Vogelsberg</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">B229 → Brilon → B7 Marsberg → Korbach → B252 → Bad Wildungen → B485 → Homberg → B254 → Alsfeld</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Rewe bij Brilon | Lidl bij Alsfeld-centrum</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Brilon</strong> – Historisch marktplaatsje in het Sauerland</li>
+<li><strong>Bad Wildungen</strong> – Kuurbad met historische Evangelische Stadtkirche</li>
+<li><strong>Alsfeld</strong> – Middeleeuwse vakwerkhuizen, Rathaus uit 1512 – UNESCO-tentatieflijst</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – DE geen vignetplicht voor campers.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Alsfeld: vanuit recreatiegebied Erlen (nabij camping), buiten bebouwde kom. <a href="https://www.droniq.de" target="_blank">droniq.de</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Wohnmobilstellplatz am Erlenstadion</div>
+<div class="ca">&#128205; Am Erlenstadion, 36304 Alsfeld, Deutschland</div>
+<div class="ca">&#128222; +49 6631 182165 &nbsp;|&nbsp; EUR ~8/dag</div>
+<div class="cp">45 plaatsen op grasraster, stroom (CEE), water, WiFi. 300m van historisch centrum. Max 3 nachten.</div>
+</div>
+</div></div>
+<div class="et-section" id="e3">
+<div class="et-header" style="background:#d4ac0d" onclick="tog('b3')">
+<h3>EH3: Alsfeld (DE) &rarr; Coburg (DE) – Stellplatz Vesteblick</h3>
+<span class="badge2">207 km &bull; 3u27</span>
+</div>
+<div class="et-body" id="b3">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>207 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>3u27</div>
+<div class="info-item"><strong>Karakter</strong>normale rijdag</div>
+<div class="info-item"><strong>Landen</strong>DE</div>
+<div class="info-item"><strong>Max helling continu</strong>4% / ~2 km – B19 Rhön uitlopers</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">B254 → Lauterbach → B87 → Fulda → B27 → Bad Neustadt → Mellrichstadt → B19 → Hildburghausen → B89 → Coburg</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Kaufland bij Fulda | Edeka bij Bad Neustadt</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Fulda</strong> – Dom en Stadtschloss, centrum wandeling (30 min detour)</li>
+<li><strong>Bad Neustadt a.d. Saale</strong> – Historische vakwerkstadtje</li>
+<li><strong>Coburg</strong> – Veste Coburg (grootste burcht in Duitsland), historisch centrum – Martin Luther verbleef hier in 1530</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – DE geen vignetplicht voor campers.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Veste Coburg: vanuit park Coburger Festungsberg, voor zonsondergang. <a href="https://www.droniq.de" target="_blank">droniq.de</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Wohnmobilstellplatz "Vesteblick" Coburg</div>
+<div class="ca">&#128205; Badweg, 96450 Coburg, Deutschland</div>
+<div class="ca">&#128222; +49 9561 7491640 &nbsp;|&nbsp; EUR 12/dag</div>
+<div class="cp">22 plaatsen, stroom, water, afvalwater, verlicht, grindondergrond. Jaarrond open. Uitzicht op Veste Coburg.</div>
+</div>
+</div></div>
+<div class="et-section" id="e4">
+<div class="et-header" style="background:#27ae60" onclick="tog('b4')">
+<h3>EH4: Coburg (DE) &rarr; Cheb (CZ) – Kemp Václav *** VERPLICHTE STOP ***</h3>
+<span class="badge2">117 km &bull; 1u56</span>
+</div>
+<div class="et-body" id="b4">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>117 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>1u56</div>
+<div class="info-item"><strong>Karakter</strong>korte rijdag – heel dag voor Cheb sightseeing</div>
+<div class="info-item"><strong>Landen</strong>DE → CZ</div>
+<div class="info-item"><strong>Max helling continu</strong>4% / ~3 km – B303 Fichtelgebirge</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">B303 → Sonneberg → B173 → Lichtenfels → Kulmbach → B303 Marktredwitz → B303/15 Schirnding → Cheb</div>
+<h4>&#128196; Vignette</h4>
+<div class="warn">Tsjechië vignette vereist – koop online vóór vertrek via edalnice.cz (EUR 14,60/10 dagen)</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Edeka bij Kulmbach | Albert Heijn/Billa bij Cheb centrum</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Fichtelgebirge</strong> – Granietgebergte met dichte bossen, spectaculaire rotsen bij Luisenburg</li>
+<li><strong>Schirnding</strong> – Historische grensovergang DE-CZ</li>
+<li><strong>Cheb (Eger)</strong> – Middeleeuws centrum, Chebský hrad (burcht), Špalíček (vakwerkgebouwen 13e eeuw)</li>
+<li><strong>Jesenice-meer</strong> – Stuwmeer bij camping, zwemmen en wandelen</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – route via B303/lokale wegen, geen CZ expressweg.</div>
+<div class="actie-warn">&#128760; <strong>Drone MET VOORWAARDEN</strong> – Cheb: vlieg vanuit parkeerterrein BUITEN historische kern. Historisch centrum niet overvliegen. <a href="https://uas.caa.cz" target="_blank">uas.caa.cz</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping am See Václav (Kemp Václav)</div>
+<div class="ca">&#128205; Všebořická 211-51, 350 02 Cheb-Podhrad, Czech Republic</div>
+<div class="ca">&#128222; +420 354 435 653 &nbsp;|&nbsp; EUR 20-25/nacht</div>
+<div class="cp">Open ~11 mei – 6 sept. Stroom (6A/10A), water, afvalwater, sanitair, strand. Aan Jesenice-meer, 5 km van Cheb.</div>
+</div>
+</div></div>
+<div class="et-section" id="e5">
+<div class="et-header" style="background:#2471a3" onclick="tog('b5')">
+<h3>EH5: Cheb (CZ) &rarr; Český Krumlov (CZ) – Camping Chvalsiny *** VERPLICHTE STOP ***</h3>
+<span class="badge2">256 km &bull; 4u15</span>
+</div>
+<div class="et-body" id="b5">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>256 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>4u15</div>
+<div class="info-item"><strong>Karakter</strong>normale rijdag</div>
+<div class="info-item"><strong>Landen</strong>CZ</div>
+<div class="info-item"><strong>Max helling continu</strong>4% / ~2 km – weg 4/39 Šumava rand</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">6 (Cheb → Bor u Tachova → Stříbro, lokale weg) → Plzeň (west-ring via 26) → 19 → Nepomuk → 20 → Písek → 20 → Strakonice → 4 → Prachatice → 39 → Chvalsiny</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Albert bij Plzeň | Kaufland bij Písek</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Plzeň</strong> – Historisch centrum, Plzeňský Prazdroj (Pilsner Urquell brouwerij) – optioneel 30 min stop</li>
+<li><strong>Písek</strong> – Oudste stenen brug van Tsjechië (13e eeuw), rivier Otava</li>
+<li><strong>Strakonice</strong> – Gotisch kasteel aan de Otava</li>
+<li><strong>Šumava</strong> – Nationaal park: bossen, meren, uitgestrekte natuur</li>
+<li><strong>Český Krumlov</strong> – UNESCO – middeleeuwse vestingstad, kasteel met baroktuin</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – route via lokale weg 6 (geen R6-expressweg).</div>
+<div class="actie-warn">&#128760; <strong>Drone MET VOORWAARDEN</strong> – Český Krumlov: vlieg vanuit weiden BUITEN UNESCO-kern. Niet overvliegen, geen BVLOS. <a href="https://uas.caa.cz" target="_blank">uas.caa.cz</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping Chvalsiny (MyCamp)</div>
+<div class="ca">&#128205; Chvalsiny 321, 382 08 Chvalsiny, Czech Republic</div>
+<div class="ca">&#128222; +420 380 739 123 &nbsp;|&nbsp; EUR 25-30/nacht</div>
+<div class="cp">Open mei-sept. 150 plaatsen (min 120m²), stroom, water, afvalwater, WiFi, zoutwaterbad, bistro, vers brood. ACSI Award Beste Camp Tsjechië 2025.</div>
+</div>
+<h4>&#127793; Rustdag – Šumava &amp; Český Krumlov (1 dag)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">Rustdag: oerbossen &amp; UNESCO-stad</div>
+<div class="cp">Ochtend: wandeling NP Šumava – Schwarzenberg-kanaal (vlak, 8 km) of Boubínský prales (oerbos). Middag: Český Krumlov centrum – kasteel met baroktuin, kanoën op de Moldau, winkelen in de smalle steegjes. Avond: eten bij de camping-bistro.</div>
+</div>
+</div></div>
+<div class="et-section" id="e6">
+<div class="et-header" style="background:#8e44ad" onclick="tog('b6')">
+<h3>EH6: Český Krumlov (CZ) &rarr; Bruck an der Mur (AT) – Gasthof Pichler</h3>
+<span class="badge2">273 km &bull; 4u33</span>
+</div>
+<div class="et-body" id="b6">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>273 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>4u33</div>
+<div class="info-item"><strong>Karakter</strong>langste rijdag – vertrek om 10:00</div>
+<div class="info-item"><strong>Landen</strong>CZ → AT</div>
+<div class="info-item"><strong>Max helling continu</strong>3% – B146 volgt Enns-rivier (kloof vlak)</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">39 → Vyšší Brod → Lipno (meer) → grens AT → B38/Freistadt → B127 → St. Florian am Inn → B1 Enns → B115 Steyr → B115 → Weyer → B115 → Großraming → Klaus → B146 Gesäuse → Admont → B146 → Leoben → B116 → Bruck a.d. Mur</div>
+<div class="route-box">B146 door Gesäuse-kloof volgt de Enns-rivier – max 3% continu. Tunnels op route breed genoeg (&gt;4m) voor camper 2,85m.</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Billa bij Freistadt | Spar bij Steyr</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Vyšší Brod</strong> – Cisterciënzerklooster (1259), aan Moldaurivier – rustpunt</li>
+<li><strong>Lipno-stuwmeer</strong> – Grootste meer van Tsjechië, prachtige panorama's</li>
+<li><strong>Mauthausen</strong> – Historisch gedenkplaats voormalig concentratiekamp (optioneel, indrukwekkend)</li>
+<li><strong>Gesäuse</strong> – Nationaal park: ruige bergkloof van de Enns – spectaculair rijden</li>
+<li><strong>Bruck an der Mur</strong> – Historische Eisenkapelle, Schlossberg, confluence Mur en Mürz</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – A1 Linz vermeden via B127/B1. Volledig B-wegen.</div>
+<div class="actie-warn">&#128760; <strong>Drone MET VOORWAARDEN</strong> – Gesäuse NP: vlieg vanuit stopplaatsen langs B146. Check actuele NP-regels. <a href="https://www.dronespace.at" target="_blank">dronespace.at</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping & Raddörfl Gasthof Pichler</div>
+<div class="ca">&#128205; Bruckerstrasse 110, 8600 Oberaich (Bruck a.d. Mur), Steiermark</div>
+<div class="ca">&#128222; +43 3862 51418 &nbsp;|&nbsp; EUR 26-38/nacht</div>
+<div class="cp">Open mrt-nov. 20 camperplaatsen, stroom, 4-sterren sanitair, WiFi, restaurant ter plaatse. Direct aan de Mur-fietsroute.</div>
+</div>
+<h4>&#127793; Rustdag – Gesäuse (1 dag)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">Rustdag: NP Gesäuse – wildste kloof van Oostenrijk</div>
+<div class="cp">Wandeling Gesäuse Eingang bij Admont (terugrijden ~45 min): Wasserfallweg langs de Enns-kloof (6 km, 3u, spectaculaire diepte). Of korter: Haindlkarhütte trail met panorama. Stift Admont bezoeken (grootste kloosterbibliotheek ter wereld). Terugrijden via de B146 langs de rivier.</div>
+</div>
+</div></div>
+<div class="et-section" id="e7">
+<div class="et-header" style="background:#17a589" onclick="tog('b7')">
+<h3>EH7: Bruck an der Mur (AT) &rarr; Maribor (SL) – Camping Center Kekec</h3>
+<span class="badge2">144 km &bull; 2u23</span>
+</div>
+<div class="et-body" id="b7">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>144 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>2u23</div>
+<div class="info-item"><strong>Karakter</strong>korte rijdag – extra tijd voor Maribor</div>
+<div class="info-item"><strong>Landen</strong>AT → SL</div>
+<div class="info-item"><strong>Max helling continu</strong>4% / ~3 km – B78 daling naar Klagenfurt</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">B116 → Leoben → B117 Judenburg → B317 → Murau → B97 → Neumarkt → B78 → Klagenfurt (ring B83) → B82 Völkermarkt → B82 Bleiburg → grens SL (Prevalje) → 414 → Slovenj Gradec → 406 → Dravograd → 3 → Maribor</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Hofer bij Leoben | Eurospar bij Klagenfurt</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Leoben</strong> – Stadsplein Hauptplatz, historische mijnbouwstad</li>
+<li><strong>Murau</strong> – Pittoresk stadje in het Murtal, kasteel, kerkje</li>
+<li><strong>Slovenj Gradec</strong> – Kunststad met werken van Franz Kafka, Koroška-regio</li>
+<li><strong>Maribor</strong> – Oudste wijnstok ter wereld (450 jaar), historisch centrum, Drauradweg fietsroute</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – A9/A2 (AT) en H5 (SL) vermeden. Volledig B-wegen.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Maribor: vanuit Pohorje open velden achter camping. Niet boven stadscentrum. <a href="https://cat.caa.si" target="_blank">cat.caa.si</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping Center Kekec</div>
+<div class="ca">&#128205; Pohorska ulica 35c, 2000 Maribor, Slovenija</div>
+<div class="ca">&#128222; +386 40 665 732 &nbsp;|&nbsp; EUR 24-27/nacht</div>
+<div class="cp">14 camperplaatsen, stroom, water, afvalwater, WiFi, verwarmd sanitair, wasmachines. 5-7 km van centrum in Pohorje sportgebied.</div>
+</div>
+</div></div>
+<div class="et-section" id="e8">
+<div class="et-header" style="background:#e74c3c" onclick="tog('b8')">
+<h3>EH8: Maribor (SL) &rarr; Plitvice (HR) – Nationaal Park</h3>
+<span class="badge2">297 km &bull; 4u56</span>
+</div>
+<div class="et-body" id="b8">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>297 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>4u56</div>
+<div class="info-item"><strong>Karakter</strong>langste rijdag – vertrek om 09:30</div>
+<div class="info-item"><strong>Landen</strong>SL → HR</div>
+<div class="info-item"><strong>Max helling continu</strong>5% / ~8 km – D1 Mala Kapela (gestage klim)</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">3 → Ptuj → 2 → Varaždin (HR) → D24 → Koprivnica → D22 → Križevci → D10 → Zagreb (ring D30) → D1 → Karlovac → D1 → Ogulin → D42 → Plitvice NP</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Konzum bij Varaždin | Lidl bij Karlovac | kleine Konzum bij Plitvice ingang</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Ptuj</strong> – Oudste stad van Slovenië, kasteel op heuvel – korte stop</li>
+<li><strong>Varaždin</strong> – Barok stadje met Stari Grad kasteel</li>
+<li><strong>Koprivnica</strong> – Podravina regio, rustpunt</li>
+<li><strong>Zagreb ring</strong> – Rijdt langs hoofdstad – geen stop nodig</li>
+<li><strong>Karlovac</strong> – Ster-vestingstad aan vier rivieren</li>
+<li><strong>Plitvice Meren</strong> – UNESCO: 16 trapsgewijze turquoise meren, 92 watervallen. Entree: zone 1+2 EUR 10-30</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – SL weg 3 (geen snelweg), HR geen vignet. D1 route mautvrij.</div>
+<div class="actie-nee">&#128760; <strong>Drone VERBODEN</strong> – NP Plitvice: GEEN drone in of boven het park (UNESCO). Punt. <a href="https://bespilotni.ccaa.hr" target="_blank">bespilotni.ccaa.hr</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Nationaal Park Plitvice – Bestemming bereikt!</div>
+<div class="ca">&#128205; NP Plitvička jezera, Hrvatska</div>
+<div class="ca">&#128222; NP-info: +385 53 751 015 &nbsp;|&nbsp; Parking bij NP: EUR 7/dag. Dichtstbijzijnde camping: Camp Korana ~3 km (EUR 20-30)</div>
+<div class="cp">Aankomst! Meren te voet te bereiken via boardwalks. Plan min. 1 volle dag. Vroeg starten voor zonsopgang-wandeling.</div>
+</div>
+<h4>&#127793; Rustdagen – Plitvice (3 dagen)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">3 rustdagen: het hoogtepunt van de reis!</div>
+<div class="cp"><strong>Dag 1 – Bovenmeren + panoramatrein (Route H, Ingang 2):</strong><br>
+Ingang 2 (Ulaz 2) &rarr; elektrische panoramatrein St2&rarr;St3 (gratis, inbegrepen in ticket) &rarr; wandeling Bovenmeren omlaag langs Prošćansko jezero, Galovac, Gradinsko &rarr; boardwalks (4-6u, 8 km) &rarr; boot over Kozjak-meer (P2&rarr;P1, inbegrepen) &rarr; terug. Start vroeg (07:30 tijdslot) voor rust en beste licht!<br><br>
+<strong>Dag 2 – Benedenmeren + boot (Route A/B, Ingang 1):</strong><br>
+Ingang 1 (Ulaz 1) &rarr; Veliki Slap (Grote Waterval, 78m – hoogste van Kroati&euml;) &rarr; boardwalk Benedenmeren &rarr; elektrische boot over Kozjak-meer (P1&rarr;P3, inbegrepen) &rarr; terug via trein of wandelpad (3-4u). Middags vrij: zwemmen bij Korana-rivier, fietsen rondom het park.<br><br>
+<strong>Dag 3 – Rustdag buiten het park:</strong><br>
+Wandeling Korana-canyon (bij de camping) of dagtrip naar dorp Rastoke (40 km, "klein Plitvice" – watermolens op travertijn). Of herhaal favoriete deel van het park bij ander licht.</div>
+<div class="warn" style="margin-top:8px">&#9888; <strong>Tickets &amp; reserveren:</strong><br>
+&#8226; Boek online v&iacute;a <a href="https://ticketing.np-plitvicka-jezera.hr/" target="_blank">ticketing.np-plitvicka-jezera.hr</a> &ndash; <strong>verplicht in hoogseizoen (juni-sept)</strong>, vaak weken van tevoren uitverkocht in juli/aug!<br>
+&#8226; Kies een <strong>tijdslot</strong> bij boeking (vroegste = minste drukte)<br>
+&#8226; <strong>2-dagenkaart</strong> (~&euro; 55-65 p.p. hoogseizoen) &ndash; dag 1 Ingang 2, dag 2 Ingang 1<br>
+&#8226; Trein &amp; boot zijn <strong>inbegrepen</strong> in elk ticket, geen apart kaartje nodig<br>
+&#8226; Prijzen 2026 worden gepubliceerd op <a href="https://np-plitvicka-jezera.hr/en/" target="_blank">np-plitvicka-jezera.hr</a> (check april/mei 2026)</div>
+</div>
+</div></div>
+
+<div class="overzicht" id="retour-overzicht">
+<h2>&#8617; Terugreis – Plitvice &rarr; Apeldoorn via Senj, Adriatische Kust &amp; Basel</h2>
+<table>
+<tr><th>Et.</th><th>Van</th><th>Naar</th><th>Km</th><th>Rijtijd</th><th>Dag</th><th>Land</th></tr>
+<tr><td><strong>ER1</strong></td><td>Plitvice NP (HR)</td><td>Senj (HR) – Autocamp Bunica</td><td><strong>90 km</strong></td><td>1h30</td><td>korte rijdag – kust bereikt! Velebit &amp; Senj</td><td><span class="badge bg-hr">HR</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+2 rustdagen Senj / Velebit</strong> – NP Velebit (UNESCO biosfeer): bergwandelen, strand, zwemmen. Nehaj-vesting.</td><td colspan="2"></td></tr>
+<tr><td><strong>ER2</strong></td><td>Senj (HR)</td><td>Opatija (HR) – Autocamp Preluk</td><td><strong>130 km</strong></td><td>2h10</td><td>&#9733; scenic kustdag – D8 Adriatische kustweg</td><td><span class="badge bg-hr">HR</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+1 rustdag Opatija / Kvarner</strong> – Lungomare kustpad (12 km), zwemmen, optioneel dagtrip eiland Krk.</td><td colspan="2"></td></tr>
+<tr><td><strong>ER3</strong></td><td>Opatija (HR)</td><td>Grado (IT) – Camping Tenuta Primero</td><td><strong>140 km</strong></td><td>2h20</td><td>korte rijdag – Trieste verkennen</td><td><span class="badge bg-hr">HR</span> <span class="badge bg-sl">SL</span> <span class="badge bg-it">IT</span></td></tr>
+<tr><td><strong>ER4</strong></td><td>Grado (IT)</td><td>Verona (IT) – Camping Castel San Pietro</td><td><strong>250 km</strong></td><td>4h10</td><td>normale rijdag – Po-vlakte</td><td><span class="badge bg-it">IT</span></td></tr>
+<tr><td><strong>ER5</strong></td><td>Verona (IT)</td><td>Como (IT) – Camping International</td><td><strong>200 km</strong></td><td>3h20</td><td>normale rijdag – langs Gardameer</td><td><span class="badge bg-it">IT</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+2 rustdagen Como / Gardameer</strong> – Twee Alpen-meren: wandelen Brunate, vaporetto Bellagio, zwemmen Peschiera.</td><td colspan="2"></td></tr>
+<tr><td><strong>ER6</strong></td><td>Como (IT)</td><td>Basel (CH) – Stellplatz Basel</td><td><strong>300 km</strong></td><td>5h00</td><td>langste rijdag – Gotthard A2-tunnel</td><td><span class="badge bg-it">IT</span> <span class="badge bg-ch">CH</span></td></tr>
+<tr style="background:#f0fff4"><td></td><td colspan="4">&#127793; <strong>+1 rustdag Vierwoudstrekenmeer</strong> – Alpen-meer bij Luzern: wandelen Rigi of Pilatus, boottochtje op het meer.</td><td colspan="2"></td></tr>
+<tr><td><strong>ER7</strong></td><td>Basel (CH)</td><td>Koblenz (DE) – Camping Koblenz</td><td><strong>320 km</strong></td><td>5h20</td><td>lange rijdag – Rijn &amp; Loreley</td><td><span class="badge bg-ch">CH</span> <span class="badge bg-de">DE</span></td></tr>
+<tr><td><strong>ER8</strong></td><td>Koblenz (DE)</td><td>Apeldoorn (NL) – Thuis!</td><td><strong>280 km</strong></td><td>4h40</td><td>laatste rijdag – Bonn, Keulen, Arnhem</td><td><span class="badge bg-de">DE</span> <span class="badge bg-nl">NL</span></td></tr>
+<tr style="background:#e8f4fd"><td colspan="3"><strong>Totaal retour</strong></td>
+<td><strong>~1.710 km</strong></td><td><strong>~28u rijden</strong></td><td colspan="2">7 rijdagen + 6 rustdagen = 13 nachten</td></tr>
+<tr style="background:#d5f5e3"><td colspan="3"><strong>Totaal reis (4 weken)</strong></td>
+<td><strong>~3.398 km</strong></td><td><strong>~56u rijden</strong></td><td colspan="2"><strong>15 rijdagen + 12 rustdagen + 1 reservedag = 28 dagen</strong></td></tr>
+</table>
+</div>
+
+<!-- ER1 -->
+<div class="et-section" id="er1">
+<div class="et-header" style="background:#c0392b" onclick="tog('br1')">
+<h3>ER1: Plitvice NP (HR) &rarr; Senj (HR) – Adriatische Kust via Vratnik</h3>
+<span class="badge2">90 km &bull; 1h30</span>
+</div>
+<div class="et-body" id="br1">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>90 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>1h30</div>
+<div class="info-item"><strong>Karakter</strong>korte rijdag – hele middag Senj &amp; strand!</div>
+<div class="info-item"><strong>Landen</strong>HR</div>
+<div class="info-item"><strong>Max helling continu</strong>8% / ~5 km – D23 Vratnik-pas (698m). Geen snelweg-alternatief beschikbaar. Lage versnelling, rustig afdalen.</div>
+</div>
+<h4>&#128663; Route (B-wegen)</h4>
+<div class="route-box">D42 &rarr; Oto&#269;ac &rarr; D23 &rarr; <strong>Vratnik-pas (698m)</strong> &rarr; D23 afdaling &rarr; Senj (kust)</div>
+<div class="warn">&#9888; <strong>Vratnik-pas (D23):</strong> Steile afdaling tot 8% over ~5 km richting Senj. G&eacute;&eacute;n snelweg-alternatief op dit traject. Rij in lage versnelling, gebruik motorrem. De weg is goed verhard en breed genoeg voor camper. Spectaculaire uitzichten over de Kvarner!</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Konzum bij Oto&#269;ac | Studenac bij Senj haven</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Oto&#269;ac</strong> – Gacka-vallei: forellen-rivier, rustpunt in het binnenland</li>
+<li><strong>Vratnik-pas</strong> – Historische bergpas door het Velebit-gebergte: panorama over de Adriatische Zee en eilanden</li>
+<li><strong>Senj</strong> – Oudste stad aan de Kroatische kust: Nehaj-vesting (1558, Uskokken-piraten), haven, historisch centrum</li>
+<li><strong>Velebit</strong> – Grootste gebergte van Kroati&euml;, UNESCO Biosfeerreservaat</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – D-wegen mautvrij.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Senj: vanuit strand/haven, open zee. Nehaj-vesting spectaculair van bovenaf. <a href="https://bespilotni.ccaa.hr" target="_blank">bespilotni.ccaa.hr</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Autocamp Bunica</div>
+<div class="ca">&#128205; Bunica bb, 53270 Senj, Hrvatska</div>
+<div class="ca">&#128222; +385 53 881 078 &nbsp;|&nbsp; EUR 20-30/nacht</div>
+<div class="cp">Open mei-sept. Kleine camping direct aan zee, kiezelstrand, schaduw onder pijnbomen. Stroom, water, sanitair. 2 km van Senj centrum. Zwemmen in kristalhelder Adriatisch water.</div>
+</div>
+<h4>&#127793; Rustdagen – Senj &amp; Velebit (2 dagen)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">2 rustdagen: bergen &amp; zee</div>
+<div class="cp"><strong>Dag 1:</strong> NP Sjeverni Velebit – dagwandeling Premužićeva staza (bergpad, panorama over Adriatische eilanden). Of korter: Zavratnica-baai (verborgen fjord, 3 km wandeling).<br>
+<strong>Dag 2:</strong> Stranddag bij Senj. Snorkelen in kristalhelder water. Nehaj-vesting bezoeken (1558, Uskokken-piraten). Vis eten aan de haven. Drone-opnames kust.</div>
+</div>
+</div></div>
+
+<!-- ER2 -->
+<div class="et-section" id="er2">
+<div class="et-header" style="background:#e67e22" onclick="tog('br2')">
+<h3>ER2: Senj (HR) &rarr; Opatija (HR) – D8 Adriatische Kustweg &#9733;</h3>
+<span class="badge2">130 km &bull; 2h10</span>
+</div>
+<div class="et-body" id="br2">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>130 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>2h10</div>
+<div class="info-item"><strong>Karakter</strong>&#9733; scenic kustdag – langzaam rijden, veel stops!</div>
+<div class="info-item"><strong>Landen</strong>HR</div>
+<div class="info-item"><strong>Max helling continu</strong>4% – D8 kustweg, glooiend langs de zee</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">D8 kustweg &rarr; Novi Vinodolski &rarr; Crikvenica &rarr; Selce &rarr; Kraljevica &rarr; D8 &rarr; Rijeka (ring) &rarr; D8 &rarr; Opatija</div>
+<div class="route-box">De D8 "Jadranska Magistrala" (Adriatische Kustweg) – een van de mooiste kustroutes van Europa. Constant uitzicht op zee, eilanden en bergen.</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Studenac bij Novi Vinodolski | Plodine bij Crikvenica | Konzum bij Opatija</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Novi Vinodolski</strong> – Historisch kuststadje met Frankopan-kasteel, zandstrand</li>
+<li><strong>Crikvenica</strong> – Populaire badplaats aan de Kvarner, lange strandpromenade</li>
+<li><strong>Kraljevica</strong> – Twee Frankopan-kastelen, brug naar eiland Krk (optionele dagtrip)</li>
+<li><strong>Rijeka</strong> – Havenstad: Trsat-kasteel, Korzo-boulevard, Kroatisch Nationaal Theater</li>
+<li><strong>Opatija</strong> – Belle &Eacute;poque: Lungomare wandelpad (12 km langs zee), Villa Angiolina, Hotel Kvarner (1884)</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – D8 is mautvrij.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Opatija: Lungomare open zee-zijde. Crikvenica: strand buiten centrum. <a href="https://bespilotni.ccaa.hr" target="_blank">bespilotni.ccaa.hr</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Autocamp Preluk</div>
+<div class="ca">&#128205; Preluk bb, 51000 Rijeka (3 km van Opatija centrum)</div>
+<div class="ca">&#128222; +385 51 622 516 &nbsp;|&nbsp; EUR 25-35/nacht</div>
+<div class="cp">Open mei-sept. Direct aan zee, kiezelstrand. Stroom, water, afvalwater, sanitair. Busverbinding naar Opatija centrum (10 min).</div>
+</div>
+<h4>&#127793; Rustdag – Opatija / Kvarner (1 dag)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">Rustdag: Belle Époque aan zee</div>
+<div class="cp">Lungomare kustpad wandelen (12 km langs zee, van Volosko naar Lovran – vlak en prachtig). Zwemmen bij rotsstranden. Optioneel: dagtrip eiland Krk (brug bij Kraljevica, 30 min). 's Avonds: zeevruchten in Volosko (vissersdorp met toprestaurants).</div>
+</div>
+</div></div>
+
+<!-- ER3 -->
+<div class="et-section" id="er3">
+<div class="et-header" style="background:#d4ac0d" onclick="tog('br3')">
+<h3>ER3: Opatija (HR) &rarr; Grado (IT) – via Trieste</h3>
+<span class="badge2">140 km &bull; 2h20</span>
+</div>
+<div class="et-body" id="br3">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>140 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>2h20</div>
+<div class="info-item"><strong>Karakter</strong>korte rijdag – hele middag Trieste!</div>
+<div class="info-item"><strong>Landen</strong>HR &rarr; SL &rarr; IT</div>
+<div class="info-item"><strong>Max helling continu</strong>3% – kustweg, licht glooiend bij Karst</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">D8 kustweg &rarr; Matulji &rarr; grens SL (Rupa) &rarr; weg 1 &rarr; Kozina &rarr; weg 1 &rarr; Koper &rarr; grens IT (Lazaretto) &rarr; SS202 &rarr; Trieste &rarr; SS14 &rarr; Monfalcone &rarr; SR352 &rarr; Grado</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Mercator bij Koper (SL) | Eurospar bij Trieste | Conad bij Monfalcone</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Koper</strong> – Venetiaans stadje aan de Sloveense kust, Pretoriaanse Paleis, Titov trg</li>
+<li><strong>Trieste</strong> – Kosmopolitische havenstad: Piazza Unit&agrave; d'Italia (grootste plein aan zee in Europa), Castello di Miramare, Canal Grande</li>
+<li><strong>Aquileia</strong> – Romeinse ru&iuml;nes (UNESCO): basiliek met 4e-eeuwse moza&iuml;ekvloer – 5 km van Grado</li>
+<li><strong>Grado</strong> – "Gouden eiland": oud vissersdorp, zandstranden, lagune</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – SL weg 1 (geen snelweg), IT SS-wegen geen tol.</div>
+<div class="actie-warn">&#128760; <strong>Drone MET VOORWAARDEN</strong> – Trieste: vanuit Miramare-park. Grado: strand/lagune. Registratie via D-Flight.it vereist. <a href="https://www.d-flight.it" target="_blank">d-flight.it</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping Tenuta Primero</div>
+<div class="ca">&#128205; Viale dei Provveditori 36, 34073 Grado (IT)</div>
+<div class="ca">&#128222; +39 0431 896900 &nbsp;|&nbsp; EUR 30-42/nacht</div>
+<div class="cp">Open mei-sept. 300 plaatsen in pijnbomenbos. Stroom, water, afvalwater, WiFi, strand 200m, restaurant, minimarkt. Direct aan de lagune van Grado.</div>
+</div>
+</div></div>
+
+<!-- ER4 -->
+<div class="et-section" id="er4">
+<div class="et-header" style="background:#27ae60" onclick="tog('br4')">
+<h3>ER4: Grado (IT) &rarr; Verona (IT) – dwars door de Po-vlakte</h3>
+<span class="badge2">250 km &bull; 4h10</span>
+</div>
+<div class="et-body" id="br4">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>250 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>4h10</div>
+<div class="info-item"><strong>Karakter</strong>normale rijdag – compleet vlak</div>
+<div class="info-item"><strong>Landen</strong>IT</div>
+<div class="info-item"><strong>Max helling continu</strong>0% – Po-vlakte, spijkerplat</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">SR352 &rarr; Cervignano &rarr; SS14 &rarr; Latisana &rarr; SS14 &rarr; Portogruaro &rarr; SS14 &rarr; San Don&agrave; di Piave &rarr; SS14 &rarr; Mestre (Venezia-mainland) &rarr; SS11 &rarr; Padova &rarr; SS11 &rarr; Vicenza &rarr; SS11 &rarr; Verona</div>
+<div class="route-box">SS14 "della Venezia Giulia" en SS11 "Padana Superiore" – historische staatswegen dwars door de Po-vlakte. Compleet vlak, goed onderhouden.</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Lidl bij Latisana | Conad bij Mestre | Eurospar bij Vicenza | Pam bij Verona</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Mestre/Venezia</strong> – Parkeer bij Mestre; vaporetto naar Veneti&euml; (30 min, optionele dagstop)</li>
+<li><strong>Padova</strong> – Cappella degli Scrovegni (Giotto-fresco's, UNESCO), Basilica di Sant'Antonio</li>
+<li><strong>Vicenza</strong> – Palladio-stad (UNESCO): Teatro Olimpico, Basilica Palladiana</li>
+<li><strong>Verona</strong> – Arena di Verona (Romeins amfitheater), Juliet's balkon, Piazza delle Erbe</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – SS/SR-wegen zijn mautvrij in Itali&euml;.</div>
+<div class="actie-warn">&#128760; <strong>Drone MET VOORWAARDEN</strong> – Verona: vanuit Park delle Colombare, buiten centro storico. Veneti&euml;: VERBODEN boven lagune/eilanden. <a href="https://www.d-flight.it" target="_blank">d-flight.it</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping Castel San Pietro</div>
+<div class="ca">&#128205; Via Castel San Pietro 2, 37129 Verona (IT)</div>
+<div class="ca">&#128222; +39 045 592037 &nbsp;|&nbsp; EUR 28-38/nacht</div>
+<div class="cp">Open mrt-okt. Panoramaligging op heuvel boven de Adige. Stroom, water, WiFi, sanitair. 10 min lopen naar Arena en centrum.</div>
+</div>
+</div></div>
+
+<!-- ER5 -->
+<div class="et-section" id="er5">
+<div class="et-header" style="background:#2471a3" onclick="tog('br5')">
+<h3>ER5: Verona (IT) &rarr; Como (IT) – langs Gardameer &amp; Po-vlakte</h3>
+<span class="badge2">200 km &bull; 3h20</span>
+</div>
+<div class="et-body" id="br5">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>200 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>3h20</div>
+<div class="info-item"><strong>Karakter</strong>normale rijdag – Gardameer &amp; Lombardije</div>
+<div class="info-item"><strong>Landen</strong>IT</div>
+<div class="info-item"><strong>Max helling continu</strong>2% – Po-vlakte met zachte oploop naar Como</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">SS11 &rarr; Peschiera del Garda &rarr; SS11 &rarr; Desenzano &rarr; Brescia &rarr; SS11 &rarr; Bergamo &rarr; SS342 &rarr; Lecco &rarr; SS36 &rarr; Como</div>
+<div class="route-box">SS11 loopt parallel aan de A4 door de Po-vlakte. SS342 volgt de Adda-vallei naar Lecco – prachtige rit.</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Esselunga bij Peschiera | Lidl bij Brescia | Carrefour bij Bergamo | Esselunga bij Como</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Peschiera del Garda</strong> – Venetiaanse vestingstad (UNESCO), aan zuidpunt Gardameer – optionele zwemstop</li>
+<li><strong>Sirmione</strong> – Schiereiland in het Gardameer, Scaliger-kasteel, Romeinse grotten (4 km detour)</li>
+<li><strong>Brescia</strong> – Romeins forum en kapitool (UNESCO), Castello op de heuvel</li>
+<li><strong>Bergamo</strong> – Citt&agrave; Alta: middeleeuwse bovenstad per funicolare, Piazza Vecchia</li>
+<li><strong>Lecco</strong> – Aan het Comomeer (oostarm), decor van Manzoni's "I Promessi Sposi"</li>
+<li><strong>Como</strong> – Elegante stad aan het meer: Duomo, funicolare naar Brunate (panorama), Volta-tempel</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – SS-wegen mautvrij.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Gardameer: vanuit strand Peschiera. Como: vanuit parkeergebied Brunate-kant. D-Flight registratie. <a href="https://www.d-flight.it" target="_blank">d-flight.it</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping International</div>
+<div class="ca">&#128205; Via Cecilio 61, 22100 Como (IT)</div>
+<div class="ca">&#128222; +39 031 521435 &nbsp;|&nbsp; EUR 30-40/nacht</div>
+<div class="cp">Open april-okt. Stroom, water, afvalwater, WiFi, restaurant. Aan de westelijke oever, 2 km van centrum. Uitzicht op het meer en de Alpen.</div>
+</div>
+<h4>&#127793; Rustdagen – Como &amp; Gardameer (2 dagen)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">2 rustdagen: Alpen-meren</div>
+<div class="cp"><strong>Dag 1:</strong> Comomeer verkennen. Funicolare naar Brunate (panorama tot Monte Rosa). Vaporetto naar Bellagio ("parel van het Comomeer"). Wandeling Greenway del Lago (10 km langs oever).<br>
+<strong>Dag 2:</strong> Terugrijden naar Peschiera del Garda (55 km). Zwemmen in het Gardameer. Optioneel: Sirmione schiereiland (Scaliger-kasteel, Romeinse grotten). 's Avonds terug naar Como-camping.</div>
+</div>
+</div></div>
+
+<!-- ER6 -->
+<div class="et-section" id="er6">
+<div class="et-header" style="background:#8e44ad" onclick="tog('br6')">
+<h3>ER6: Como (IT) &rarr; Basel (CH) – Gotthard-tunnel &amp; Vierwoudstrekenmeer</h3>
+<span class="badge2">300 km &bull; 5h00</span>
+</div>
+<div class="et-body" id="br6">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>300 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>5h00</div>
+<div class="info-item"><strong>Karakter</strong>langste rijdag – vertrek 09:00</div>
+<div class="info-item"><strong>Landen</strong>IT &rarr; CH</div>
+<div class="info-item"><strong>Max helling continu</strong>Gotthard-pas (oud): 10% – DAAROM A2 snelweg/tunnel! Aanrijroute &lt;4%</div>
+</div>
+<h4>&#128663; Route (B-wegen + A2 snelweg voor Gotthard)</h4>
+<div class="route-box">Como &rarr; Chiasso (CH grens) &rarr; A2 &rarr; Lugano &rarr; A2 &rarr; Bellinzona &rarr; <strong>A2 Gotthard-tunnel (17 km, snelweg)</strong> &rarr; Altdorf &rarr; A2 &rarr; Luzern &rarr; A2 &rarr; Basel</div>
+<div class="warn">&#9888; <strong>Gotthard:</strong> Geen B-weg alternatief onder 5% beschikbaar. De Gotthardpas-weg (Tremola) heeft hellingen tot 10%. Daarom A2-tunnel (snelweg) verplicht. Zwitserland vignet (CHF 40) vereist voor ALLE snelwegen.</div>
+<div class="route-box">Spectaculaire rit: Lugano aan het meer, Leventina-dal, Gotthard-tunnel (17 km), Vierwoudstrekenmeer bij Luzern, Jura naar Basel.</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Migros bij Lugano | Coop bij Bellinzona | Migros bij Luzern</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Lugano</strong> – Italiaans-sprekend Zwitserland: meer, Monte Br&eacute;, palmen en piazza's</li>
+<li><strong>Bellinzona</strong> – Drie UNESCO-kastelen: Castelgrande, Montebello, Sasso Corbaro</li>
+<li><strong>Gotthard-tunnel</strong> – 17 km: langste autotunnel van Zwitserland</li>
+<li><strong>Luzern</strong> – Kapelbrug (oudste houten brug Europa, 1333), Vierwoudstrekenmeer, Pilatus</li>
+<li><strong>Basel</strong> – Drelandenpunt (CH/DE/FR), M&uuml;nster, Rhein-zwemmen, kunstmusea</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-warn">&#128196; <strong>Vignet VEREIST:</strong> CH vignet CHF 40 (~EUR 42) verplicht voor A2 Gotthard. Koop aan grens Chiasso of online via <a href="https://www.e-vignette.ch" target="_blank">e-vignette.ch</a></div>
+<div class="actie-warn">&#128760; <strong>Drone MET VOORWAARDEN</strong> – Zwitserland: BAZL-regels, max 120m AGL. Luzern: vanuit oever buiten centrum. <a href="https://map.geo.admin.ch" target="_blank">map.geo.admin.ch</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Wohnmobil-Stellplatz Basel</div>
+<div class="ca">&#128205; Schaffhauserrheinweg, 4058 Basel, Schweiz</div>
+<div class="ca">&#128222; +41 61 268 6868 &nbsp;|&nbsp; CHF 25-30/nacht (~EUR 26-32)</div>
+<div class="cp">15 plaatsen aan de Rijn. Stroom, water. 10 min lopen naar M&uuml;nster en Altstadt.</div>
+</div>
+<h4>&#127793; Rustdag – Vierwoudstrekenmeer (1 dag)</h4>
+<div class="camp-box" style="background:#f0fff4;border-color:#27ae60">
+<div class="cn" style="color:#1a6b3a">Rustdag: Zwitserse Alpen &amp; meer</div>
+<div class="cp">Dagtrip vanuit Basel terug naar Luzern (~95 km) of maak er een tussenstop van op de rijdag. Boottochtje op het Vierwoudstrekenmeer (Luzern → Vitznau, 1u). Tandradbaan naar Rigi (1.798m – koningin der bergen, 360° panorama). Of Pilatus per kabelbaan. Kapelbrug en oud centrum Luzern.</div>
+</div>
+</div></div>
+
+<!-- ER7 -->
+<div class="et-section" id="er7">
+<div class="et-header" style="background:#17a589" onclick="tog('br7')">
+<h3>ER7: Basel (CH) &rarr; Koblenz (DE) – Rijndal &amp; Loreley</h3>
+<span class="badge2">320 km &bull; 5h20</span>
+</div>
+<div class="et-body" id="br7">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>320 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>5h20</div>
+<div class="info-item"><strong>Karakter</strong>lange rijdag – prachtige Rijnroute</div>
+<div class="info-item"><strong>Landen</strong>CH &rarr; DE</div>
+<div class="info-item"><strong>Max helling continu</strong>2% – Rijndal is vlak</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">Basel &rarr; B3 (DE-zijde) &rarr; Freiburg im Breisgau &rarr; B3 &rarr; Offenburg &rarr; B3/B36 &rarr; Karlsruhe &rarr; B9 &rarr; Speyer &rarr; Worms &rarr; Mainz &rarr; B9 (Loreley-Rijn!) &rarr; Bingen &rarr; Bacharach &rarr; St. Goar &rarr; Boppard &rarr; Koblenz</div>
+<div class="route-box">Vanaf Mainz volgt de B9 de westelijke Rijnoever door het UNESCO Oberes Mittelrheintal – een van de mooiste routes in Europa!</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Edeka bij Freiburg | Rewe bij Karlsruhe | Lidl bij Speyer | Edeka bij Koblenz</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Freiburg im Breisgau</strong> – M&uuml;nster, B&auml;chle (beekjes door de stad), Schwarzwald-poort</li>
+<li><strong>Speyer</strong> – Dom (UNESCO, oudste Romaanse keizerkathedraal), Technik Museum</li>
+<li><strong>Worms</strong> – Dom St. Peter, Luther-monument</li>
+<li><strong>Mainz</strong> – Gutenberg Museum, Dom, Rijnpromenade</li>
+<li><strong>Loreley</strong> – Beroemde leisteenrots (132m) boven de Rijn</li>
+<li><strong>Bacharach</strong> – Best bewaarde middeleeuwse Rijnstad</li>
+<li><strong>Koblenz</strong> – Deutsches Eck: samenkomst Rijn en Moezel, Festung Ehrenbreitstein</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – DE B-wegen, geen vignetplicht.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Loreley-plateau: open rotsenlandschap. Freiburg: Schwarzwald-rand. <a href="https://www.droniq.de" target="_blank">droniq.de</a></div>
+</div>
+<h4>&#127957; Overnachting</h4>
+<div class="camp-box">
+<div class="cn">Camping &amp; Wohnmobilstellplatz Koblenz</div>
+<div class="ca">&#128205; Schartwiesenweg 6, 56070 Koblenz-L&uuml;tzel, Deutschland</div>
+<div class="ca">&#128222; +49 261 402719 &nbsp;|&nbsp; EUR 20-25/nacht</div>
+<div class="cp">Open april-okt. Direct aan de Moezel bij de Rijnmonding. 1 km van Deutsches Eck.</div>
+</div>
+</div></div>
+
+<!-- ER8 -->
+<div class="et-section" id="er8">
+<div class="et-header" style="background:#e74c3c" onclick="tog('br8')">
+<h3>ER8: Koblenz (DE) &rarr; Apeldoorn (NL) – Thuis!</h3>
+<span class="badge2">280 km &bull; 4h40</span>
+</div>
+<div class="et-body" id="br8">
+<div class="info-grid">
+<div class="info-item"><strong>Afstand</strong>280 km</div>
+<div class="info-item"><strong>Rijtijd (60 km/u)</strong>4h40</div>
+<div class="info-item"><strong>Karakter</strong>laatste rijdag – langs Rijn naar huis!</div>
+<div class="info-item"><strong>Landen</strong>DE &rarr; NL</div>
+<div class="info-item"><strong>Max helling continu</strong>1% – Rijndal en NL vlakland</div>
+</div>
+<h4>&#128663; Route (B-wegen, mautvrij)</h4>
+<div class="route-box">B9 &rarr; Andernach &rarr; Remagen &rarr; Bonn &rarr; B56 &rarr; K&ouml;ln &rarr; B57 &rarr; Krefeld &rarr; B9 &rarr; Venlo (NL) &rarr; N271 &rarr; Nijmegen &rarr; N325 &rarr; Arnhem &rarr; N344 &rarr; Apeldoorn</div>
+<h4>&#128717; Supermarkten onderweg</h4>
+<div class="route-box">Rewe bij Bonn | Aldi bij Krefeld | Albert Heijn bij Nijmegen</div>
+<h4>&#127968; Bezienswaardigheden</h4>
+<ul class="sight-list">
+<li><strong>Remagen</strong> – Friedensmuseum Br&uuml;cke von Remagen (WOII Rijnoversteek 1945)</li>
+<li><strong>Bonn</strong> – Beethovenhaus, M&uuml;nster, voormalige hoofdstad</li>
+<li><strong>K&ouml;ln</strong> – Dom van Keulen (UNESCO), Hohenzollernbr&uuml;cke – optionele stop</li>
+<li><strong>Nijmegen</strong> – Valkhof, oudste stad van Nederland, Waalkade</li>
+<li><strong>Arnhem</strong> – Airborne Museum Hartenstein (Market Garden 1944)</li>
+</ul>
+<h4>&#9989; Vignet &amp; Drone</h4>
+<div class="acties-rij">
+<div class="actie-ok">&#128196; <strong>Vignet:</strong> Niet nodig – DE B-wegen + NL geen vignetplicht.</div>
+<div class="actie-ok">&#128760; <strong>Drone JA</strong> – Nijmegen/Arnhem: Waal- of Rijnoever open landschap. <a href="https://www.dronelink.nl" target="_blank">dronelink.nl</a></div>
+</div>
+<h4>&#127957; Bestemming bereikt!</h4>
+<div class="camp-box">
+<div class="cn">&#127968; Apeldoorn – Thuis!</div>
+<div class="ca">&#128205; Apeldoorn, Gelderland, Nederland</div>
+<div class="cp">Totale rondreis: 1.688 km heen + ~1.710 km retour via kust = ~3.398 km. Velebit, Adriatische kust, Italiaanse steden, Alpen-tunnel en Rijnromantiek!</div>
+</div>
+</div></div>
+
+<!-- PRAKTISCH -->
+<div class="overzicht" id="praktisch">
+<h2>&#128295; Praktische tips</h2>
+<div class="info-grid">
+<div class="info-item"><strong>Voertuig</strong>Roller Team Ducato, diesel, h=2,85m, l=~6m</div>
+<div class="info-item"><strong>Totale route</strong>Heen: 1.688 km (8 etappes) + Retour: ~1.710 km (8 etappes) = ~3.398 km</div>
+<div class="info-item"><strong>Rijstijl</strong>Vertrek 09:00-11:00, aankomst 14:00-16:00</div>
+<div class="info-item"><strong>Hellingbeleid</strong>Max 5% op B-wegen; boven 5% overstappen op snelweg (A2 Gotthard). Uitzondering: D23 Vratnik 8% (geen snelweg-alternatief)</div>
+<div class="info-item"><strong>Gemiddelde snelheid</strong>60 km/u (realistisch voor landwegen met pauzes)</div>
+<div class="info-item"><strong>Brandstof</strong>Diesel &euro; 2,50/l &bull; Verbruik 1:11 (11 km/l) &bull; Totaal ~3.398 km &rarr; ~309 liter &rarr; <strong>&euro; 773</strong></div>
+<div class="info-item"><strong>Verplichte stops heen</strong>Cheb (EH4) en &#268;esk&yacute; Krumlov (EH5) zijn verplichte stops</div>
+<div class="info-item"><strong>Reserveren</strong>Chvalsiny (EH5), Camp13 M&ouml;hnesee (EH1), Tenuta Primero Grado (ER3) in hoogseizoen vooraf</div>
+<div class="info-item"><strong>Seizoen</strong>Mei-september. Kemp V&aacute;clav (Cheb): open ca. 11 mei – 6 sept.</div>
+<div class="info-item"><strong>Noodcontacten</strong>EU: 112 | ANWB buitenland: +31 88 269 2222 | ADAC DE: 0800 5101112 | TCS CH: 140</div>
+</div>
+
+<h4 style="margin:14px 0 6px;color:#1a3a5c">Geschat reisbudget (2 personen)</h4>
+<table class="vignette-table">
+<tr><th>Post</th><th>Berekening</th><th>Bedrag</th></tr>
+<tr><td><strong>Diesel</strong></td><td>~309 liter &times; &euro; 2,50</td><td><strong>&euro; 773</strong></td></tr>
+<tr><td><strong>Campings (27 nachten)</strong></td><td>Gemiddeld &euro; 25/nacht</td><td><strong>&euro; 675</strong></td></tr>
+<tr><td><strong>Vignet Zwitserland</strong></td><td>CHF 40 (verplicht A2)</td><td><strong>&euro; 42</strong></td></tr>
+<tr><td><strong>Vignet Tsjechi&euml;</strong></td><td>10-dagen (alleen indien expressweg)</td><td><strong>&euro; 15</strong></td></tr>
+<tr><td><strong>Plitvice entree</strong></td><td>2 pers &times; &euro; 25 (hoogseizoen)</td><td><strong>&euro; 50</strong></td></tr>
+<tr><td><strong>Boodschappen/eten</strong></td><td>28 dagen &times; &euro; 40/dag</td><td><strong>&euro; 1.120</strong></td></tr>
+<tr><td><strong>Uit eten (af en toe)</strong></td><td>~8 keer &times; &euro; 40</td><td><strong>&euro; 320</strong></td></tr>
+<tr style="background:#e8f4fd"><td colspan="2"><strong>Geschat totaal (4 weken)</strong></td><td><strong>&euro; 2.995</strong></td></tr>
+</table>
+
+<h4 style="margin:14px 0 6px;color:#1a3a5c">Documenten &amp; verzekering</h4>
+<div class="info-grid">
+<div class="info-item"><strong>Identiteit</strong>Paspoort of ID-kaart (geldig!) &ndash; HR is Schengen-grens, paspoort verplicht</div>
+<div class="info-item"><strong>Rijbewijs</strong>Nederlands rijbewijs (B) geldig in alle landen op route</div>
+<div class="info-item"><strong>Kentekenbewijs</strong>Origineel meenemen (deel I + II)</div>
+<div class="info-item"><strong>Groene kaart</strong>Internationaal motorrijtuigverzekeringsbewijs &ndash; check bij verzekeraar of HR/SL/CZ gedekt zijn</div>
+<div class="info-item"><strong>EHIC</strong>European Health Insurance Card &ndash; gratis basiszorg in EU. Aanvragen via zorgverzekeraar</div>
+<div class="info-item"><strong>Reisverzekering</strong>Aanvullend: pechhulp buitenland, medische kosten, repatri&euml;ring. ANWB Wegenwacht Europa of vergelijkbaar</div>
+<div class="info-item"><strong>Campingpas</strong>ACSI CampingCard of ADAC Card &ndash; korting op campings in laagseizoen</div>
+<div class="info-item"><strong>Drone</strong>EU-droneregistratie + EU-competentiebewijs (A1/A3). Registratienummer op drone plakken</div>
+</div>
+
+<h4 style="margin:14px 0 6px;color:#1a3a5c">Camper checklist v&oacute;&oacute;r vertrek</h4>
+<div class="info-grid">
+<div class="info-item"><strong>Water</strong>Schoonwatertank vol, slang + adapter mee (diverse kranen in EU)</div>
+<div class="info-item"><strong>Grijswater</strong>Leeg voor vertrek. Lospunten bij vrijwel elke camping/stellplatz</div>
+<div class="info-item"><strong>Cassette-toilet</strong>Leeg + schoonmaakmiddel. Blue/green chemie mee (niet overal verkrijgbaar)</div>
+<div class="info-item"><strong>Gas</strong>Gasflessen vol. LPG-vulpunten onderweg: DE &amp; AT goed, HR/CZ lastiger. Reservefles meenemen</div>
+<div class="info-item"><strong>Stroom</strong>CEE-kabel (25m) + verloopstekker Schuko. Zekering 6A/10A/16A verschilt per land</div>
+<div class="info-item"><strong>Navigatie</strong>Google Maps / Maps.me offline kaarten downloaden: CZ, AT, SL, HR, IT, CH. Berggebieden hebben slecht bereik</div>
+<div class="info-item"><strong>Gevarendriehoek &amp; hesje</strong>Verplicht in AT, SL, HR, IT, CZ. Hesje per persoon in voertuig</div>
+<div class="info-item"><strong>Verbandtrommel</strong>Verplicht in DE, AT, CZ. Check vervaldatum</div>
+<div class="info-item"><strong>Levelling/oprijplaten</strong>Campings zijn niet altijd vlak &ndash; waterpas + oprijblokken meenemen</div>
+<div class="info-item"><strong>Reservesleutels</strong>Extra voertuigsleutel apart bewaren (niet in camper)</div>
+</div>
+
+<h4 style="margin:14px 0 6px;color:#1a3a5c">Vignetten &amp; Tol overzicht</h4>
+<table class="vignette-table">
+<tr><th>Land</th><th>Type</th><th>Kosten</th><th>Etappe</th></tr>
+<tr><td>Tsjechi&euml; (CZ)</td><td>Vignet</td><td>EUR 14,60/10d</td><td>EH4-EH5: alleen als je CZ expressweg gebruikt</td></tr>
+<tr><td>Zwitserland (CH)</td><td>Vignet</td><td>CHF 40 (~EUR 42)</td><td>ER6: A2 Gotthard-tunnel, verplicht</td></tr>
+<tr><td>NL, DE, AT, SL, HR, IT</td><td>Geen</td><td>–</td><td>Volledige route op B-wegen, geen tol</td></tr>
+</table>
+
+<h4 style="margin:14px 0 6px;color:#1a3a5c">Tunnels en hoogte (camper 2,85m)</h4>
+<table class="vignette-table">
+<tr><th>Tunnel/Weg</th><th>Hoogte clearance</th><th>Etappe</th><th>Status</th></tr>
+<tr><td>Ges&auml;use kloof B146 (AT)</td><td>Open weg</td><td>EH6</td><td>&#9989; Geen probleem</td></tr>
+<tr><td>D23 Vratnik-pas (HR)</td><td>Open weg</td><td>ER1</td><td>&#9888; Steil (8%) – lage versnelling</td></tr>
+<tr><td>Gotthard-tunnel A2 (CH)</td><td>4,5m (17 km)</td><td>ER6</td><td>&#9989; Geen probleem – wachttijd mogelijk in zomer</td></tr>
+<tr><td>Seelisberg-tunnel A2 (CH)</td><td>4,5m (9 km)</td><td>ER6</td><td>&#9989; Geen probleem</td></tr>
+<tr><td>Stedelijke parkeergarages</td><td>Vaak 2,0-2,1m!</td><td>alle</td><td>&#10060; VERMIJD – park op camperplaats</td></tr>
+</table>
+
+<h4 style="margin:14px 0 6px;color:#1a3a5c">Grensovergangen</h4>
+<div class="info-grid">
+<div class="info-item"><strong>Heen: NL&rarr;DE</strong>Geen controle</div>
+<div class="info-item"><strong>Heen: DE&rarr;CZ (Schirnding)</strong>Soms controle</div>
+<div class="info-item"><strong>Heen: CZ&rarr;AT / AT&rarr;SL</strong>Soms controle</div>
+<div class="info-item"><strong>Heen: SL&rarr;HR</strong>Paspoortcontrole (Schengen-grens)</div>
+<div class="info-item"><strong>Retour: HR&rarr;SL (Rupa)</strong>Soms paspoortcontrole</div>
+<div class="info-item"><strong>Retour: SL&rarr;IT / IT&rarr;CH / CH&rarr;DE / DE&rarr;NL</strong>Schengen, geen controle (soms steekproef bij CH)</div>
+</div>
+</div>
+
+<div style="background:#1a3a5c;color:#aaa;padding:12px 24px;font-size:.78em;text-align:center;margin-top:20px">
+Samengesteld maart 2026 &bull; Heen via Cheb &amp; &#268;esk&yacute; Krumlov &bull; Retour via Senj, Adriatische kust, Itali&euml; &amp; Basel &bull;
+B-wegen, max 5% helling (A2 Gotthard waar steiler) &bull; Controleer openingstijden en vignetten v&oacute;&oacute;r vertrek
+</div>
+</div>
+
+<script>
+var map = L.map('map').setView([48, 10], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'&copy; OpenStreetMap contributors', maxZoom:18
+}).addTo(map);
+
+// OSRM routing – echte wegen ipv vogelvlucht
+async function drawRoute(waypoints, color, popup) {
+  var coords = waypoints.map(function(p){return p[1]+','+p[0]}).join(';');
+  try {
+    var r = await fetch('https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson');
+    var d = await r.json();
+    if(d.code==='Ok'){
+      var latlngs = d.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]]});
+      L.polyline(latlngs,{color:color,weight:3,opacity:0.8}).addTo(map).bindPopup(popup);
+      return;
+    }
+  } catch(e){}
+  // Fallback: stippellijn als OSRM niet beschikbaar
+  L.polyline(waypoints,{color:color,weight:2,opacity:0.5,dashArray:'6,4'}).addTo(map).bindPopup(popup+' (indicatief)');
+}
+
+// Heenweg – sleutelpunten langs B-wegen
+var heenWP = [
+  [52.2115,5.9699],[51.983,5.975],[51.846,6.64],[51.572,7.38],
+  [51.487,8.092],[51.195,9.0],[50.748,9.268],[50.556,9.684],
+  [50.259,10.964],[50.09,12.35],[49.738,13.33],[49.011,14.0],
+  [48.86,14.214],[48.575,14.25],[48.252,14.636],[48.043,14.421],
+  [47.572,14.461],[47.412,15.06],[47.097,14.655],[46.549,14.364],
+  [46.546,15.653],[46.305,16.336],[45.758,16.325],[45.48,15.574],
+  [45.268,15.234],[44.88,15.616]
+];
+
+// Retour – sleutelpunten langs kustroute via Senj
+var retourWP = [
+  [44.88,15.616],[44.87,15.24],[44.99,14.91],
+  [45.18,14.69],[45.33,14.44],[45.34,14.31],
+  [45.60,14.00],[45.55,13.73],[45.65,13.77],[45.68,13.40],
+  [45.49,12.24],[45.41,11.88],[45.55,11.55],[45.44,10.99],
+  [45.54,10.21],[45.70,9.67],[45.81,9.08],
+  [46.00,8.95],[46.19,9.02],[46.88,8.64],[47.05,8.31],[47.56,7.59],
+  [47.99,7.85],[49.01,8.40],[50.00,8.27],
+  [49.97,7.90],[50.14,7.73],[50.36,7.59],
+  [50.74,7.10],[50.94,6.96],[51.37,6.17],[51.84,5.87],[52.21,5.97]
+];
+
+drawRoute(heenWP, '#2980b9', 'Heenweg – Apeldoorn → Plitvice (1.688 km)');
+drawRoute(retourWP, '#e67e22', 'Terugweg via Senj & kust – Plitvice → Apeldoorn (~1.710 km)');
+
+// Heen-stops
+var stopsH = [
+  {lat:52.2115,lon:5.9699,name:'Start: Apeldoorn',col:'#27ae60',r:10},
+  {lat:51.487,lon:8.092,name:'EH1: Möhnesee – Camp13',col:'#c0392b',r:7},
+  {lat:50.748,lon:9.268,name:'EH2: Alsfeld – Erlenstadion',col:'#e67e22',r:7},
+  {lat:50.259,lon:10.964,name:'EH3: Coburg – Vesteblick',col:'#d4ac0d',r:7},
+  {lat:50.09,lon:12.35,name:'EH4: Cheb – Kemp Václav',col:'#27ae60',r:7},
+  {lat:48.86,lon:14.214,name:'EH5: Chvalsiny (Č. Krumlov)',col:'#2471a3',r:7},
+  {lat:47.412,lon:15.06,name:'EH6: Bruck a.d. Mur – Pichler',col:'#8e44ad',r:7},
+  {lat:46.546,lon:15.653,name:'EH7: Maribor – Kekec',col:'#17a589',r:7},
+  {lat:44.88,lon:15.616,name:'Plitvice NP',col:'#c0392b',r:10}
+];
+stopsH.forEach(function(s){
+  L.circleMarker([s.lat,s.lon],{radius:s.r,fillColor:s.col,color:'#fff',weight:2,fillOpacity:0.95}).addTo(map).bindPopup('<strong>'+s.name+'</strong>');
+});
+
+// Retour-stops
+var stopsR = [
+  {lat:45.00,lon:14.91,name:'ER1: Senj – Autocamp Bunica',col:'#c0392b',r:8},
+  {lat:45.34,lon:14.31,name:'ER2: Opatija – Autocamp Preluk',col:'#e67e22',r:8},
+  {lat:45.68,lon:13.40,name:'ER3: Grado – Tenuta Primero',col:'#d4ac0d',r:8},
+  {lat:45.44,lon:10.99,name:'ER4: Verona – Castel San Pietro',col:'#27ae60',r:8},
+  {lat:45.81,lon:9.08,name:'ER5: Como – Camping International',col:'#2471a3',r:8},
+  {lat:47.56,lon:7.59,name:'ER6: Basel – Stellplatz',col:'#8e44ad',r:8},
+  {lat:50.36,lon:7.59,name:'ER7: Koblenz – Camping',col:'#17a589',r:8},
+  {lat:52.21,lon:5.97,name:'ER8: Apeldoorn – Thuis!',col:'#27ae60',r:10}
+];
+stopsR.forEach(function(s){
+  L.circleMarker([s.lat,s.lon],{radius:s.r,fillColor:s.col,color:'#fff',weight:2,fillOpacity:0.95}).addTo(map).bindPopup('<strong>'+s.name+'</strong>');
+});
+
+function tog(id) {
+  var el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+document.getElementById('b1').classList.add('open');
+</script>
+</body></html>
